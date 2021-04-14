@@ -1,0 +1,126 @@
+---
+title: "Clustering"
+author: "Isabella Chittumuri"
+date: "11/22/2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(MVA)
+data("pottery")
+pottery <- na.omit(pottery)
+?pottery
+str(pottery)
+```
+
+```{r}
+plot(pottery[,-1])
+
+# Standardize
+pottery.scale <- scale(pottery[,-10], center = F, scale = T)
+```
+
+# K means clustering
+
+1. Determine and visualize the optimal number of clusters
+
+```{r}
+library(factoextra)
+
+# Elbow method
+fviz_nbclust(pottery.scale, kmeans, method = "wss") + geom_vline(xintercept = 4, linetype =2)
+```
+
+We can use the elbow method, where the bend indicates the optimal number of clusters. Here we see that the optimal number of clusters is 4; clusters past 4 have little value.
+
+2. Compute k means clusters on data matrix
+
+```{r}
+# To set a seed for random number generator to randomly select centroids for k means algorithms
+set.seed(123)
+
+# k means: 4 the number of clusters
+# nstart: if centers if a number, how many random set should be chosen?
+km.res <- kmeans(pottery.scale, 4, nstart = 25)
+print(km.res)
+```
+
+3. Accessing different components of k means result
+
+```{r}
+# Cluster, a vector of integers indicating the cluster to which each point is allocated
+km.res$cluster
+km.res$centers
+
+# The number of observations in each cluster
+km.res$size
+```
+
+4. Directly computing means using aggregate function
+
+```{r}
+# Compute summary statistics of data subsets
+aggregate(pottery.scale, by=list(cluster=km.res$cluster), mean)
+```
+
+5. Point classifcation of original data
+
+```{r}
+# Combine R objects by rows and columns
+dd <- cbind(pottery.scale, cluster = km.res$cluster)
+head(dd)
+```
+
+This shows observations of each varibale that belongs to a speififc clustering group.
+
+# Hierarchical clustering
+
+```{r}
+# dist () = computes and returns the distance matrix
+require(stats)
+res.dist <- dist(x = pottery.scale, method = "euclidean")
+
+# d = dissimilarity structure produced by dist() function to be used
+res.hc <- hclust(d = res.dist, 
+                 method = "complete")
+```
+
+```{r}
+# fviz_dend = enhanced visualization of dendrogram
+require(factoextra)
+fviz_dend(x = res.hc, cex = 0.8, lwd = 0.8, k = 4,
+          k_colors = c("red", "green3", "blue", "magenta"))
+```
+
+The above shows a simple cluster dendrogram
+
+# Mclust
+
+```{r}
+library(mclust)
+
+d <- pottery.scale[,1:9]
+
+# BIC is used, K is up to 9
+(mc <- Mclust(d))
+
+plot(mc, what="BIC")
+```
+
+```{r}
+# Visaulize BIC values
+fviz_mclust_bic(mc)
+# Visualize classification
+fviz_mclust(mc, "classification", geom = "point")
+```
+
+According to the model selection, our best model is VVI. VVI is the model that uses diagonal, varing volume and shape.
+
+The second plot shows that the frist principle component accounts for 46.7% of variation. The second principle component accounts for 28% of the variation. So together they account for 74.7% of the variation.
+
+
+
